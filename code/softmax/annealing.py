@@ -31,12 +31,12 @@ class AnnealingSoftmax:
     def select_arm(self):
         t = sum(self.counts) + 1
         # 模拟退火
-        # temperature = 1 / math.log(t + 0.0000001)
+        temperature = 1 / math.log(t + 0.0000001)
         # temperature = 1 / t
-        if t < 100:
-            temperature = 0.5
-        else:
-            temperature = 0.1
+        # if t < 100:
+        #     temperature = 0.5
+        # else:
+        #     temperature = 0.1
         total = sum([math.exp(v / temperature) for v in self.values])
         probs = [math.exp(v / temperature) / total for v in self.values]
         return categorical_draw(probs)
