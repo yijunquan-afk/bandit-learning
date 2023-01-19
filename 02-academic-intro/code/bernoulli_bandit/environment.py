@@ -23,3 +23,7 @@ class BernoulliBandit():
   def get_stochastic_reward(self, action):
     # 重复伯努利试验
     return np.random.binomial(1, self.probs[action])
+  
+  def advance(self, action, reward):
+    """Updating the environment (useful for nonstationary bandit)."""
+    pass

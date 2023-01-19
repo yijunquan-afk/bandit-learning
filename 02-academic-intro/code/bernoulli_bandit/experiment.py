@@ -62,4 +62,4 @@ class BaseExperiment(object):
     for t in range(self.n_steps):
       self.run_step_maybe_log(t)
 
-    # self.results = pd.DataFrame(self.results)
+    self.results = pd.DataFrame(self.results)
