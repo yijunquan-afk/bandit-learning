@@ -1,13 +1,15 @@
 import numpy as np
 
 class BernoulliBandit():
-  """Simple N-armed bandit."""
+  """Bernoulli Bandits"""
 
   def __init__(self, probs):
+    """   
+    probs: 每个臂的奖励概率
+    optimal_reward: 最大奖励值
+    n_arm: 臂的数目 
+    """
     self.probs = np.array(probs)
-    assert np.all(self.probs >= 0)
-    assert np.all(self.probs <= 1)
-
     self.optimal_reward = np.max(self.probs)
     self.n_arm = len(self.probs)
 
@@ -21,7 +23,7 @@ class BernoulliBandit():
     return self.probs[action]
 
   def get_stochastic_reward(self, action):
-    # 重复伯努利试验
+    # 重复伯努利试验，产生0/1的奖励
     return np.random.binomial(1, self.probs[action])
   
   def advance(self, action, reward):
