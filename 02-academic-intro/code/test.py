@@ -9,4 +9,4 @@ def random_argmax(vector):
 vect = np.array([1,301,21,45,301])
 print(np.where(vect == vect.max())[0])
 print(np.random.choice(vect))
-
+print(np.random.rand(3))
