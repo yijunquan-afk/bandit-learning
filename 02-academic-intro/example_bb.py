@@ -4,9 +4,9 @@ import plotnine as gg
 from bernoulli_bandit.agent import BernoulliBanditEpsilonGreedy
 from bernoulli_bandit.agent import BernoulliBanditTS
 from bernoulli_bandit.environment import BernoulliBandit
-from bernoulli_bandit.experiment import BaseExperiment
+from base.experiment import BaseExperiment
 
-def plotCompara1(algorithm = 'TS'):
+def plotCompare1(algorithm = 'TS'):
     probs = [0.9,0.8,0.7]
     n_steps = 1000
     N_JOBS = 200
@@ -47,7 +47,7 @@ def plotCompara1(algorithm = 'TS'):
     print(p)
 
 
-def plotCompara2():
+def plotCompare2():
     probs = [0.9,0.8,0.7]
     n_steps = 1000
     N_JOBS = 200
@@ -91,7 +91,7 @@ def plotCompara2():
 # plotCompara1('Greedy')
 # plotCompara1('TS')
 
-plotCompara2()
+plotCompare2()
 
 
     

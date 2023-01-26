@@ -67,3 +67,34 @@ class BaseExperiment(object):
 
     # 使用pandas存储数据
     self.results = pd.DataFrame(self.results)
+
+class ExperimentNoAction(BaseExperiment):
+
+  def run_step_maybe_log(self, t):
+    # 观察环境，选择臂
+    observation = self.environment.get_observation()
+    action = self.agent.pick_action(observation)
+
+    # 计算有用的值
+    optimal_reward = self.environment.get_optimal_reward()
+    expected_reward = self.environment.get_expected_reward(action)
+    reward = self.environment.get_stochastic_reward(action)
+
+    # 使用获得的奖励和选择的臂更新智能体
+    self.agent.update_observation(observation, action, reward)
+
+    # 记录需要的值
+    instant_regret = optimal_reward - expected_reward
+    self.cum_optimal += optimal_reward
+    self.cum_regret += instant_regret
+
+    # 环境进化（非平稳实验中才会用到）
+    self.environment.advance(action, reward)
+
+
+    self.data_dict = {'t': (t + 1),
+                      'instant_regret': instant_regret,
+                      'cum_regret': self.cum_regret,
+                      'cum_optimal': self.cum_optimal,
+                      'unique_id': self.unique_id}
+    self.results.append(self.data_dict)

@@ -1,6 +1,8 @@
 import numpy as np
+from base.environment import Environment
 
-class BernoulliBandit():
+
+class BernoulliBandit(Environment):
   """Bernoulli Bandits"""
 
   def __init__(self, probs):
@@ -26,6 +28,3 @@ class BernoulliBandit():
     # 重复伯努利试验，产生0/1的奖励
     return np.random.binomial(1, self.probs[action])
   
-  def advance(self, action, reward):
-    """Updating the environment (useful for nonstationary bandit)."""
-    pass
