@@ -626,10 +626,467 @@ plotCompare1()
 plotCompare2()
 ```
 
-![png](https://note-image-1307786938.cos.ap-beijing.myqcloud.com/typora/%2004%20Thompson%20Sampling2_16_0.png)
-![png](https://note-image-1307786938.cos.ap-beijing.myqcloud.com/typora/%2004%20Thompson%20Sampling2_16_2.png)
+
+​    
+![png](04%20Thompson%20Sampling2_files/04%20Thompson%20Sampling2_16_0.png)
+​    
+
+
+​    
+​    
+
+
+​    
+![png](04%20Thompson%20Sampling2_files/04%20Thompson%20Sampling2_16_2.png)
+​    
+
+
+​    
+​    
+
 上图展示了应用贪心和TS算法处理最短路问题的结果。 
 
 悔值图表明，TS的性能很快就会收敛到最佳状态，而贪心算法却远非如此。我们通过改变 $\epsilon$，来查看 $epsilon-Greedy$ 算法的实验结果。对于每一次遍历。该算法会以 $1-\epsilon$ 的概率选择一条由贪心算法产生的路径(exploit)，剩下则随机选择一条路径(explore)。虽然这种形式的探索是有帮助的，但图中显示，学习的速度远比TS慢。 这是因为 $epsilon-Greedy$ 在选择探索路径方面并不明智。TS会将探索努力引向信息丰富的路径，而不是完全随机的路径。
 
 第二幅图表明，TS会以较快时间收敛到最优路径。 对于  $epsilon-Greedy$  方法来说，情况就不是这样了。
+
+## 2.3 Correlated Travel Times
+
+在上例的基础上，让 $\theta_e$ 是独立的和对数高斯分布的，参数为 $\mu_e$ 和 $\sigma_e^2$，让观察值(observation)特征化为：
+$$
+y_{t,e} = \zeta_{t,e} \eta_t \nu_{t,\ell(e)} \theta_e
+$$
+其中，每个 $\zeta_{t,e}$ 代表与边 $e$ 相关的特殊因子，$\eta_t$ 代表所有边共同的因子，$\ell(e)$表示边$e$是否位于`binomial bridge`的下半部分。而 $\nu_{t,0}$ 和  $\nu_{t,1}$ 分别代表对上半部和下半部的边共同有影响的因子。 我们认为每个$\zeta_{t,e}$，$\eta_t$， $\nu_{t,0}$ 和 $\nu_{t,1}$都是独立的对数高斯分布，参数为 $-\tilde{\sigma}^2/6$ 和 $\tilde{\sigma}^2/3$。 参数$\zeta_{t,e}$, $\eta_t$, $\nu_{t,0}$ 和 $\nu_{t,1}$的分布是已知的，只有对应于每个边的参数 $\theta_e$ 必须通过实验学习。鉴于这些参数，$y_{t,e} | \theta$ 的[边缘分布](https://baike.baidu.com/item/%E8%BE%B9%E7%BC%98%E5%88%86%E5%B8%83/15571865?fromModule=search-result_lemma)与2.2完全相同，尽管联合分布 $y_t | \theta$ 不同。
+
+共同因子诱发了`binomial bridge`中遍历时间之间的相关性。$\eta_t$ 代表了影响各地交通状况的随机事件，如当天的天气。而$nu_{t,0}$和$nu_{t,1}$则分别反映了只对一半的边的交通状况有影响的事件。各自反映了只对二项式桥的一半边缘的交通状况有影响的事件。**尽管在先验条件下，边的平均遍历时间是独立的，但相关的观察结果会引起后验分布中的依赖性**。
+
+共轭性质（Conjugacy properties）再次促进了后验参数的高效更新，让 $\phi, z_t \in \mathbb{R}^N$ 定义如下：
+$$
+\begin{equation*}
+\phi_e = \ln(\theta_e)
+\qquad \text{and} \qquad
+z_{t,e} =\begin{cases}
+\ln(y_{t,e}) \qquad & \text{if } e \in x_t \\
+0 \qquad & \text{otherwise.}
+\end{cases}
+\end{equation*}
+$$
+
+定义一个 $|x_t| \times |x_t|$ 的协方差矩阵 $\tilde{\Sigma}$ ，其元素为: 
+$$
+\begin{equation*}
+\tilde{\Sigma}_{e,e'} = \begin{cases}
+\tilde{\sigma}^2 \qquad & \text{for } e=e' \\
+2 \tilde{\sigma}^2/3 \qquad & \text{for } e \neq e', \ell(e) = \ell(e') \\
+\tilde{\sigma}^2/3 \qquad & \text{otherwise,}
+\end{cases}
+\end{equation*}
+$$
+
+其中$e,e' \in x_t$ 。
+
+$N \times N$的精度矩阵(concentration matrix):
+$$
+\begin{equation*}
+\tilde{C}_{e,e'} = \begin{cases}
+\tilde{\Sigma}^{-1}_{e,e'} \qquad & \text{if } e, e' \in x_t\\
+0 \qquad & \text{otherwise,}
+\end{cases}
+\end{equation*}
+$$
+其中$e,e' \in E$ 。
+
+$\phi$ 的后验分布是高斯的，均值向量为 $μ$ 和协方差矩阵为 $Σ$，并根据以下公式更新：
+$$
+\begin{align}
+(\mu, \Sigma) \leftarrow \left( \left(\Sigma^{-1} + \tilde{C} \right)^{-1} \left(\Sigma^{-1} \mu + \tilde{C} z_t\right),  \left(\Sigma^{-1} + \tilde{C}\right)^{-1}\right) \tag{4.4}
+\end{align}
+$$
+
+TS算法也可以高效的计算方式应用：每个 $t$ 的迭代从后验参数 $\mu \in \Re^N$ 和  $\Sigma\in \Re^{N\times N}$ 开始。 首先从均值为 $\mu$ 、协方差矩阵为 $\Sigma$ 的高斯分布中抽出一个向量 $\hat{\theta}$ ，然后为每个$e \in E$ 设定 $hat{theta}_e = \hat{phi}_e$，从而抽取样本 $\hat{\theta}$。 选择一个动作 $x$ 来最大化 $\mathbb{E}_{q_{\hat{\theta}}}[r(y_t) | x_t = x] = -\sum_{e \in x_t} \hat{\theta}_e$ ，使用Djikstra算法或其他算法。在应用选定的行动后，观察到结果$y_t$，并根据公式（4.4）更新belief分布参数 $(\mu, \Sigma)$ 。
+
+### 代码实现与分析
+
+单源最短路算法和上面的一致，先来看一下环境的不同：
+
+
+```python
+class CorrelatedBinomialBridge(IndependentBinomialBridge):
+  """ A Binomial Bridge with corrrelated elapsed time of each edge."""
+
+  def is_in_lower_half(self, start_node, end_node):
+    """检查边缘start_node——>end_node是否位于桥的下半部分。"""
+
+    start_depth = self._get_width_bridge(start_node[0])
+    end_depth = self._get_width_bridge(end_node[0])
+    if start_node[1] > start_depth / 2:
+      return True
+    elif start_node[1] < start_depth / 2:
+      return False
+    else:
+      return (start_depth<end_depth and end_node[1]==(start_node[1]+1)) \
+      or (start_depth>end_depth and end_node[1]==start_node[1])
+
+  def get_stochastic_reward(self, path):
+    """选择一条路，获得一个随机奖励.
+
+    Args:
+      path - list of list-like path of nodes from (0,0) to (n_stage, 0)
+
+    Returns:
+      time_elapsed - dict of dicts for elapsed time in each observed edge.
+    """
+
+    #shared factors:
+    all_edges_factor = np.exp(-(self.sigma_tilde**2) / 6 +
+                              self.sigma_tilde * np.random.randn() / np.sqrt(3))
+    upper_half_factor = np.exp(-(self.sigma_tilde**2) / 6 + self.sigma_tilde *
+                               np.random.randn() / np.sqrt(3))
+    lower_half_factor = np.exp(-(self.sigma_tilde**2) / 6 + self.sigma_tilde *
+                               np.random.randn() / np.sqrt(3))
+
+    time_elapsed = defaultdict(dict)
+    for start_node, end_node in zip(path, path[1:]):
+      mean_time = self.graph[start_node][end_node]
+      idiosyncratic_factor = np.exp(
+          -(self.sigma_tilde**2) / 6 +
+          self.sigma_tilde * np.random.randn() / np.sqrt(3))
+      if self.is_in_lower_half(start_node, end_node):
+        stoch_time = lower_half_factor * all_edges_factor * idiosyncratic_factor * mean_time
+      else:
+        stoch_time = upper_half_factor * all_edges_factor * idiosyncratic_factor * mean_time
+      time_elapsed[start_node][end_node] = stoch_time
+
+    return time_elapsed
+```
+
+接下来设计智能体：
+
+
+```python
+import copy
+import numpy as np
+import numpy.linalg as npla
+
+from collections import defaultdict
+from base.agent import Agent
+from graph.env_graph_bandit import CorrelatedBinomialBridge
+
+_SMALL_NUMBER = 1e-10
+###############################################################################
+# Helper functions for correlated agents
+
+def _prepare_posterior_update_elements(observation, action, reward, num_edges, \
+                                       edge2index, sigma_tilde, internal_env):
+  """生成用于相关BB问题后验更新的浓度矩阵
+      Inputs:
+          observation - 观察数 (= n_stages)
+          action - 选择的动作，即一条路
+          reward - 观察到的每条边的奖励, 字典的字典
+          num_edges - 总的边数
+          edge2index - 将每条边映射到一个唯一的下标
+          sigma_tilde - 噪声
+          internal_env - 内部环境
+
+      Return:
+          更新平均向量时使用的向量，更新协方差矩阵和平均向量时使用的浓度矩阵
+  """
+  # 为每条边生成局部浓度矩阵和对数奖励
+  log_rewards = np.zeros(num_edges)
+  local_concentration = np.zeros((observation, observation))
+  first_edge_counter = 0
+  for start_node in reward:
+    for end_node in reward[start_node]:
+      log_rewards[edge2index[start_node][end_node]] = \
+        np.log(reward[start_node][end_node])
+      secod_edge_counter = 0
+      for another_start_node in reward:
+        for another_end_node in reward[another_start_node]:
+          if first_edge_counter == secod_edge_counter:
+            local_concentration[first_edge_counter,secod_edge_counter] \
+              = sigma_tilde ** 2
+          elif internal_env.is_in_lower_half(start_node, end_node) \
+            == internal_env.is_in_lower_half(another_start_node, another_end_node):
+            local_concentration[first_edge_counter, secod_edge_counter] \
+              = 2 * (sigma_tilde ** 2) / 3
+          else:
+            local_concentration[first_edge_counter, secod_edge_counter] \
+                      = (sigma_tilde ** 2) / 3
+          secod_edge_counter += 1
+      first_edge_counter += 1
+
+  # 求局部浓度矩阵的逆
+  local_concentration_inv = npla.inv(local_concentration)
+
+  # 生成浓度矩阵
+  concentration = np.zeros((num_edges, num_edges))
+  first_edge_counter = 0
+  for start_node in reward:
+    for end_node in reward[start_node]:
+      secod_edge_counter = 0
+      for another_start_node in reward:
+        for another_end_node in reward[another_start_node]:
+          concentration[edge2index[start_node][end_node] \
+                        ,edge2index[another_start_node][another_end_node]] \
+          = local_concentration_inv[first_edge_counter,secod_edge_counter]
+          secod_edge_counter += 1
+      first_edge_counter += 1
+
+  return log_rewards, concentration
+
+
+def _update_posterior(posterior, log_rewards, concentration):
+  """更新后验参数
+
+      Input:
+          posterior - 后验参数的形式为(Mu, Sigma, Sigmainv)
+          log_rewards - 对每条遍历边观察到的延迟的日志
+          concentration - 根据新的观测计算出的浓度矩阵
+
+      Return:
+          updated parameters: Mu, Sigma, Sigmainv
+  """
+
+  new_Sigma_inv = posterior[2] + concentration
+  new_Sigma = npla.inv(new_Sigma_inv)
+  new_Mu = new_Sigma.dot(posterior[2].dot(posterior[0]) +
+                         concentration.dot(log_rewards))
+
+  return new_Mu, new_Sigma, new_Sigma_inv
+
+
+def _find_conditional_parameters(dim, S):
+  """给定一个维协方差矩阵S，
+  返回一个包含用于计算每个组件的条件分布的元素的列表。"""
+  Sig12Sig22inv = []
+  cond_var = []
+
+  for e in range(dim):
+    S11 = copy.copy(S[e][e])
+    S12 = S[e][:]
+    S12 = np.delete(S12, e)
+    S21 = S[e][:]
+    S21 = np.delete(S21, e)
+    S22 = S[:][:]
+    S22 = np.delete(S22, e, 0)
+    S22 = np.delete(S22, e, 1)
+    S22inv = npla.inv(S22)
+    S12S22inv = S12.dot(S22inv)
+    Sig12Sig22inv.append(S12S22inv)
+    cond_var.append(S11 - S12S22inv.dot(S21))
+
+  return cond_var, Sig12Sig22inv
+
+
+##############################################################################
+
+
+class CorrelatedBBTS(Agent):
+  """Correlated Binomial Bridge Thompson Sampling"""
+
+  def __init__(self, n_stages, mu0, sigma0, sigma_tilde, n_sweeps=10):
+    """An agent for graph bandits.
+
+    Args:
+      n_stages - number of stages of the binomial bridge (must be even)
+      mu0 - prior mean
+      sigma0 - prior stddev
+      sigma_tilde - noise on observation
+      n_sweeps - number of sweeps, used only in Gibbs sampling
+    """
+    assert (n_stages % 2 == 0)
+    self.n_stages = n_stages
+    self.n_sweeps = n_sweeps
+
+    # 使用任意初始值设置内部环境
+    self.internal_env = CorrelatedBinomialBridge(n_stages, mu0, sigma0)
+
+    # 保存一个映射(start_node,end_node)——>R以简化计算
+    self.edge2index = defaultdict(dict)
+    self.index2edge = defaultdict(dict)
+    edge_counter = 0
+    for start_node in self.internal_env.graph:
+      for end_node in self.internal_env.graph[start_node]:
+        self.edge2index[start_node][end_node] = edge_counter
+        self.index2edge[edge_counter] = (start_node, end_node)
+        edge_counter += 1
+
+    # 保存所有边的数量
+    self.num_edges = edge_counter
+
+    # 先验参数
+    self.Mu0 = np.array([mu0] * self.num_edges)
+    self.Sigma0 = np.diag([sigma0**2] * self.num_edges)
+    self.Sigma0inv = np.diag([(1 / sigma0)**2] * self.num_edges)
+    self.sigma_tilde = sigma_tilde
+
+    # p后验分布保存为包含平均向量、协方差矩阵及其逆的三重分布
+    self.posterior = (self.Mu0, self.Sigma0, self.Sigma0inv)
+
+    # boostrap版本中使用的附加参数
+    self.concentration_history = []
+    self.log_reward_history = []
+    self.history_size = 0
+
+  def get_posterior_mean(self):
+    """获得每条边的后验均值
+
+    Return:
+      edge_length - dict of dicts edge_length[start_node][end_node] = distance
+    """
+    edge_length = copy.deepcopy(self.internal_env.graph)
+
+    for start_node in edge_length:
+      for end_node in edge_length[start_node]:
+        edge_index = self.edge2index[start_node][end_node]
+        mean = self.posterior[0][edge_index]
+        var = self.posterior[0][edge_index, edge_index]
+        edge_length[start_node][end_node] = np.exp(mean + 0.5 * var)
+
+    return edge_length
+
+  def get_posterior_sample(self):
+    """获得每条边的后验抽样
+
+    Return:
+      edge_length - dict of dicts edge_length[start_node][end_node] = distance
+    """
+    # flattened sample
+    flattened_sample = np.random.multivariate_normal(self.posterior[0],
+                                                     self.posterior[1])
+
+    edge_length = copy.deepcopy(self.internal_env.graph)
+
+    for start_node in edge_length:
+      for end_node in edge_length[start_node]:
+        edge_length[start_node][end_node] = \
+            np.exp(flattened_sample[self.edge2index[start_node][end_node]])
+
+    return edge_length
+
+  def update_observation(self, observation, action, reward):
+    """更新观察值
+    Args:
+      observation - number of stages
+      action - path chosen by the agent (not used)
+      reward - dict of dict reward[start_node][end_node] = stochastic_time
+    """
+    assert (observation == self.n_stages)
+
+    log_rewards, concentration = _prepare_posterior_update_elements(observation,\
+            action, reward, self.num_edges, self.edge2index, self.sigma_tilde, \
+            self.internal_env)
+
+    # 更新联合分布的均值和方差矩阵
+    new_Mu, new_Sigma, new_Sigma_inv = _update_posterior(self.posterior, \
+                                                log_rewards, concentration)
+    self.posterior = (new_Mu, new_Sigma, new_Sigma_inv)
+
+  def pick_action(self, observation):
+    """Greedy shortest path wrt posterior sample."""
+    posterior_sample = self.get_posterior_sample()
+    self.internal_env.overwrite_edge_length(posterior_sample)
+    path = self.internal_env.get_shortest_path()
+
+    return path
+```
+
+实验环境和上面的一样，接下来跑一下：
+
+
+```python
+import pandas as pd
+import plotnine as gg
+
+
+def generateIndependentBBTS(n_steps, n_stages, mu0, sigma0, sigma_tilde, jobs):
+    results = []
+    for job_id in range(jobs):
+        agent = IndependentBBTS(n_stages, mu0, sigma0, sigma_tilde)
+        # 初始化环境，产生图
+        env = IndependentBinomialBridge(n_stages, mu0, sigma0, sigma_tilde)
+        experiment = ExperimentNoAction(
+            agent, env, n_steps=n_steps, seed=job_id, unique_id=str(job_id))
+        experiment.run_experiment()
+        results.append(experiment.results)
+
+    df_agent = (pd.concat(results)).assign(agent='misspecified TS')
+    return df_agent
+
+
+def generateCorrelatedBBTS(n_steps, n_stages, mu0, sigma0, sigma_tilde, jobs):
+    results = []
+    for job_id in range(jobs):
+        agent = CorrelatedBBTS(n_stages, mu0, sigma0, sigma_tilde)
+        env = IndependentBinomialBridge(n_stages, mu0, sigma0, sigma_tilde)
+        experiment = ExperimentNoAction(
+            agent, env, n_steps=n_steps, seed=job_id, unique_id=str(job_id))
+        experiment.run_experiment()
+        results.append(experiment.results)
+    df_agent = (pd.concat(results)).assign(agent='coherent TS')
+    return df_agent
+
+
+def generateAgents():
+    n_stages = 20
+    n_steps = 500
+    mu0 = -0.5
+    sigma0 = 1
+    sigma_tilde = 1
+    N_JOBS = 200
+
+    agents = []
+
+    agents.append(generateIndependentBBTS(
+        n_steps, n_stages, mu0, sigma0, sigma_tilde, N_JOBS))
+    agents.append(generateCorrelatedBBTS(n_steps, n_stages, mu0,
+                  sigma0, sigma_tilde, N_JOBS))
+    df_agents = pd.concat(agents)
+    return df_agents
+
+
+def plotCompare1():
+    df_agents = generateAgents()
+
+    plt_df = (df_agents.groupby(['t', 'agent'])
+              .agg({'instant_regret': np.mean})
+              .reset_index())
+    p = (gg.ggplot(plt_df)
+         + gg.aes('t', 'instant_regret', colour='agent')
+         + gg.geom_line(size=1.25, alpha=0.75)
+         + gg.xlab('time period (t)')
+         + gg.ylab('per-period regret')
+         + gg.scale_colour_brewer(name='agent', type='qual', palette='Set1'))
+    print(p)
+
+
+def plotCompare2():
+    df_agents = generateAgents()
+
+    df_agents['cum_ratio'] = (
+        df_agents.cum_optimal - df_agents.cum_regret) / df_agents.cum_optimal
+    plt_df = (df_agents.groupby(['t', 'agent'])
+              .agg({'cum_ratio': np.mean})
+              .reset_index())
+    p = (gg.ggplot(plt_df)
+         + gg.aes('t', 'cum_ratio', colour='agent')
+         + gg.geom_line(size=1.25, alpha=0.75)
+         + gg.xlab('time period (t)')
+         + gg.ylab('Total distance / optimal')
+         + gg.scale_colour_brewer(name='agent', type='qual', palette='Set1')
+         + gg.aes(ymin=1)
+         + gg.geom_hline(yintercept=1, linetype='dashed', size=2, alpha=0.5))
+
+    print(p)
+
+
+plotCompare1()
+plotCompare2()
+
+```
+
+
+![png](https://note-image-1307786938.cos.ap-beijing.myqcloud.com/typora/%2004%20Thompson%20Sampling2_25_0.png)
+![png](https://note-image-1307786938.cos.ap-beijing.myqcloud.com/typora/%2004%20Thompson%20Sampling2_25_2.png)
+
+比较表明，由于考虑了边游历时间之间的相互依赖性，结果得到了实质性的改进。
