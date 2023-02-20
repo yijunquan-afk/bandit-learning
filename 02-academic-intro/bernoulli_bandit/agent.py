@@ -1,13 +1,10 @@
 import numpy as np
 
-
-def random_argmax(vector):
-    """选择vector中的最大值的下标，如果有多个最大，则随机选择其中一个"""
-    index = np.random.choice(np.where(vector == vector.max())[0])
-    return index
+from base.agent import Agent
+from base.agent import random_argmax
 
 
-class BernoulliBanditEpsilonGreedy():
+class BernoulliBanditEpsilonGreedy(Agent):
     """Bernoulli Bandit问题中使用ε-greedy算法"""
 
     def __init__(self, n_arm, a0=1, b0=1, epsilon=0.0):
@@ -58,3 +55,22 @@ class BernoulliBanditTS(BernoulliBanditEpsilonGreedy):
         sampled_means = self.get_posterior_sample()
         action = random_argmax(sampled_means)
         return action
+
+class BernoulliBanditTSLaplace(BernoulliBanditTS):
+  """使用了拉普拉斯近似
+  数据集越大，拉普拉斯近似的作用约理想。
+  """
+  def get_posterior_sample(self):
+    """后验密度的高斯近似，不再是具体的beta分布"""
+    (a, b) = (self.prior_success + 1e-6 - 1, self.prior_failure + 1e-6 - 1)
+    assert np.all(a > 0)
+    assert np.all(b > 0)
+    # 先验是一个beta分布
+    # mode：众数点
+    mode = a / (a + b)
+    # hessian矩阵：多变量情形下的二阶导数
+    hessian = a / mode + b / (1 - mode)
+    # np.random.randn：返回一个或一组服从标准正态分布的随机样本值
+    # 近似的后验分布 ～ N(mode，hession^{-1})
+    laplace_sample = mode + np.sqrt(1 / hessian) * np.random.randn(self.n_arm)
+    return laplace_sample

@@ -1,13 +1,11 @@
 import numpy as np
 
-def random_argmax(vector):
-    """随机选择argmax"""
-    index = np.random.choice(np.where(vector == vector.max())[0])
-    return index
+poker = []
+for i in range(10):
+    poker.append(i+1)
 
-
-# vect = np.array([1,301,21,45,301])
-# print(np.where(vect == vect.max())[0])
-# print(np.random.choice(vect))
-# print(np.random.rand(3))
-print(np.random.randn())
+v = 0
+e = 5.5
+for x in poker:
+    v += (e-x)**2/10
+print(v)
